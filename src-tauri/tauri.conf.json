@@ -1,0 +1,55 @@
+{
+  "productName": "Candlebar",
+  "version": "0.1.0",
+  "identifier": "com.candlebar.app",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build",
+    "devUrl": "http://localhost:5173",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Candlebar",
+        "width": 480,
+        "height": 640,
+        "resizable": true,
+        "minWidth": 400,
+        "minHeight": 500,
+        "fullscreen": false,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "decorations": true,
+        "transparent": false,
+        "visible": false,
+        "center": false
+      }
+    ],
+    "security": {
+      "csp": null
+    },
+    "trayIcon": {
+      "iconPath": "icons/transparent.png",
+      "iconAsTemplate": false,
+      "menuOnLeftClick": false
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.png"
+    ],
+    "macOS": {
+      "entitlements": null,
+      "exceptionDomain": "",
+      "frameworks": [],
+      "providerShortName": null,
+      "signingIdentity": null
+    }
+  }
+}
