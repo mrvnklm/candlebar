@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { STOCK_LOGOS } from '@/lib/constants';
+import { useStockStore } from '@/lib/store';
 import type { Stock } from '@/types';
 
 interface StockItemProps {
@@ -11,9 +12,36 @@ interface StockItemProps {
 }
 
 export const StockItem = React.memo(function StockItem({ stock, alias }: StockItemProps) {
+  const { 
+    valueDisplay, 
+    stockValueDisplays, 
+    symbolDisplay, 
+    globalDecimals, 
+    stockDecimals 
+  } = useStockStore();
+  
   const changePercent = stock.changePercent || stock.change_percent || 0;
   const isPositive = changePercent >= 0;
   const logoUrl = STOCK_LOGOS[stock.symbol];
+  
+  // Determine what to show: use individual preference if set, otherwise use global
+  const displayMode = stockValueDisplays[stock.symbol] || valueDisplay;
+  const showPrice = displayMode === 'price' || displayMode === 'both';
+  const showPercentage = displayMode === 'percentage' || displayMode === 'both';
+  
+  // If both values are supposed to be hidden (shouldn't happen), default to showing both
+  const effectiveShowPrice = showPrice || (!showPrice && !showPercentage);
+  const effectiveShowPercentage = showPercentage || (!showPrice && !showPercentage);
+  
+  // Get decimal places for this stock
+  const decimals = stockDecimals[stock.symbol] ?? globalDecimals;
+  
+  // Determine symbol display
+  const showSymbol = symbolDisplay === 'show' || symbolDisplay === 'symbol-only';
+  const showAlias = (symbolDisplay === 'show' || symbolDisplay === 'alias-only') && alias;
+  const displayName = symbolDisplay === 'alias-only' && alias ? alias : 
+                      symbolDisplay === 'symbol-only' ? stock.symbol :
+                      (alias || stock.symbol);
 
   return (
     <motion.div
@@ -36,25 +64,32 @@ export const StockItem = React.memo(function StockItem({ stock, alias }: StockIt
           ) : (
             <div className="h-8 w-8 rounded-full bg-muted" />
           )}
-          <div>
-            <div className="font-semibold text-sm">{alias || stock.symbol}</div>
-            {alias && (
-              <div className="text-xs text-muted-foreground">{stock.symbol}</div>
-            )}
-          </div>
+          {symbolDisplay !== 'hide' && (
+            <div>
+              <div className="font-semibold text-sm">{displayName}</div>
+              {showAlias && showSymbol && symbolDisplay === 'show' && (
+                <div className="text-xs text-muted-foreground">{stock.symbol}</div>
+              )}
+            </div>
+          )}
         </div>
         <div className="text-right">
-          <div className="font-semibold">${stock.price.toFixed(2)}</div>
-          <div
-            className={cn(
-              'text-xs font-medium px-1.5 py-0.5 rounded',
-              isPositive
-                ? 'text-green-500 bg-green-500/10'
-                : 'text-red-500 bg-red-500/10'
-            )}
-          >
-            {Math.abs(changePercent).toFixed(2)}%
-          </div>
+          {effectiveShowPrice && (
+            <div className="font-semibold">${stock.price.toFixed(decimals)}</div>
+          )}
+          {effectiveShowPercentage && (
+            <div
+              className={cn(
+                'text-xs font-medium px-1.5 py-0.5 rounded',
+                effectiveShowPrice ? 'mt-0.5' : '', // Add margin only if price is shown
+                isPositive
+                  ? 'text-green-500 bg-green-500/10'
+                  : 'text-red-500 bg-red-500/10'
+              )}
+            >
+              {isPositive ? '+' : ''}{changePercent.toFixed(2)}%
+            </div>
+          )}
         </div>
       </div>
     </Card>

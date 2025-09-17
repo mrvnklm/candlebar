@@ -11,11 +11,19 @@ interface StockListProps {
 }
 
 export function StockList({ stocks, isLoading }: StockListProps) {
-  const { symbolAliases, customDataSources, customDataValues } = useStockStore();
+  const { symbolAliases, entrySpacing } = useStockStore();
+  
+  const getSpacingClass = () => {
+    switch (entrySpacing) {
+      case 'compact': return 'space-y-1';
+      case 'normal': return 'space-y-2';
+      case 'relaxed': return 'space-y-4';
+    }
+  };
 
   if (isLoading) {
     return (
-      <div className="space-y-2">
+      <div className={getSpacingClass()}>
         {[1, 2, 3].map((i) => (
           <Card key={i} className="p-3">
             <div className="flex items-center justify-between">
@@ -37,11 +45,11 @@ export function StockList({ stocks, isLoading }: StockListProps) {
     );
   }
 
-  if (stocks.length === 0 && customDataSources.length === 0) {
+  if (stocks.length === 0) {
     return (
       <Card className="p-8 text-center">
         <div className="text-4xl mb-4">📊</div>
-        <div className="text-muted-foreground">No data to display</div>
+        <div className="text-muted-foreground">No stocks to display</div>
         <div className="text-xs text-muted-foreground mt-2">
           Click the gear icon to add stocks
         </div>
@@ -50,7 +58,7 @@ export function StockList({ stocks, isLoading }: StockListProps) {
   }
 
   return (
-    <div className="space-y-2">
+    <div className={getSpacingClass()}>
       {stocks.map((stock) => (
         <StockItem
           key={stock.symbol}
@@ -58,31 +66,6 @@ export function StockList({ stocks, isLoading }: StockListProps) {
           alias={symbolAliases[stock.symbol]}
         />
       ))}
-      {customDataSources.map((source) => {
-        const value = customDataValues[source.name];
-        if (!value) return null;
-        
-        return (
-          <Card key={source.name} className="p-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-green-500" />
-                <div>
-                  <div className="font-semibold text-sm">{source.alias || source.name}</div>
-                  <div className="text-xs text-muted-foreground">Custom API</div>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="font-semibold text-blue-500">
-                  {typeof value.value === 'number'
-                    ? `$${value.value.toFixed(value.decimals)}`
-                    : value.value}
-                </div>
-              </div>
-            </div>
-          </Card>
-        );
-      })}
     </div>
   );
 }

@@ -4,11 +4,13 @@ import { listen } from '@tauri-apps/api/event';
 import { Header } from '@/components/layout/Header';
 import { BottomBar } from '@/components/layout/BottomBar';
 import { StockList } from '@/components/stocks/StockList';
+import { CustomDataList } from '@/components/custom/CustomDataList';
 import { ManageModal } from '@/components/modals/ManageModal';
 import { Toaster } from '@/components/ui/toaster';
 import { useToast } from '@/components/ui/use-toast';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useStocks } from '@/hooks/useStocks';
+import { useCustomData } from '@/hooks/useCustomData';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useStockStore } from '@/lib/store';
 import { updateTrayTitle } from '@/lib/api';
@@ -18,66 +20,107 @@ const queryClient = new QueryClient();
 
 function AppContent() {
   const [manageOpen, setManageOpen] = useState(false);
-  const { stocks, isLoading, isError, refetch, lastUpdated } = useStocks();
-  const { displayMode, currentIndex, incrementIndex, symbolAliases } = useStockStore();
+  const { stocks, isLoading: stocksLoading, isError, refetch: refetchStocks, lastUpdated } = useStocks();
+  const { customData, isLoading: customDataLoading, refetch: refetchCustomData } = useCustomData();
+  const { displayMode, currentIndex, incrementIndex, symbolAliases, customDataSources } = useStockStore();
   const { toast } = useToast();
 
   // Update tray title
   useEffect(() => {
-    if (stocks.length === 0) {
-      updateTrayTitle('No stocks');
+    if (stocks.length === 0 && customDataSources.length === 0) {
+      updateTrayTitle('No data');
       return;
     }
 
     let title = '';
     
     if (displayMode === 'all') {
-      // Show all stocks in one line
-      title = stocks.map(stock => {
+      // Show all stocks and custom data in one line
+      const stockTitles = stocks.map(stock => {
         const displayName = symbolAliases[stock.symbol] || stock.symbol;
         const percent = stock.changePercent || stock.change_percent || 0;
         const sign = percent >= 0 ? '' : '-';
         return `${displayName} ${sign}${Math.abs(percent).toFixed(1)}%`;
-      }).join(' ');
+      });
+      
+      // Add custom data values
+      const customTitles = customData.map(data => {
+        if (data.error) return '';
+        const source = customDataSources.find(s => s.name === data.name);
+        if (!source) return '';
+        
+        const displayName = source.alias || data.name;
+        const value = typeof data.value === 'number' 
+          ? data.value.toFixed(data.decimals)
+          : data.value;
+        return `${displayName} ${value}`;
+      }).filter(Boolean);
+      
+      title = [...stockTitles, ...customTitles].join(' ');
     } else {
-      // Cycle through stocks
-      const stock = stocks[currentIndex % stocks.length];
-      if (stock) {
+      // Cycle through stocks and custom data
+      const totalItems = stocks.length + customData.length;
+      if (totalItems === 0) {
+        updateTrayTitle('No data');
+        return;
+      }
+      
+      const itemIndex = currentIndex % totalItems;
+      
+      if (itemIndex < stocks.length) {
+        // Show stock
+        const stock = stocks[itemIndex];
         const displayName = symbolAliases[stock.symbol] || stock.symbol;
         const percent = stock.changePercent || stock.change_percent || 0;
         const sign = percent >= 0 ? '' : '-';
         title = `${displayName} $${stock.price.toFixed(2)} ${sign}${Math.abs(percent).toFixed(1)}%`;
+      } else {
+        // Show custom data
+        const customIndex = itemIndex - stocks.length;
+        const data = customData[customIndex];
+        if (data && !data.error) {
+          const source = customDataSources.find(s => s.name === data.name);
+          if (source) {
+            const displayName = source.alias || data.name;
+            const value = typeof data.value === 'number' 
+              ? data.value.toFixed(data.decimals)
+              : data.value;
+            title = `${displayName} ${value}`;
+          }
+        }
       }
     }
     
     updateTrayTitle(title);
-  }, [stocks, displayMode, currentIndex, symbolAliases]);
+  }, [stocks, customData, customDataSources, displayMode, currentIndex, symbolAliases]);
 
   // Rotation timer for cycle mode
   useEffect(() => {
-    if (displayMode === 'cycle' && stocks.length > 0) {
+    const totalItems = stocks.length + customData.length;
+    if (displayMode === 'cycle' && totalItems > 0) {
       const interval = setInterval(() => {
         incrementIndex();
       }, ROTATION_INTERVAL);
       
       return () => clearInterval(interval);
     }
-  }, [displayMode, stocks.length, incrementIndex]);
+  }, [displayMode, stocks.length, customData.length, incrementIndex]);
 
   // Listen for refresh event from system tray (commented out until permissions are configured)
   // useEffect(() => {
   //   const unlisten = listen('refresh-stocks', () => {
-  //     refetch();
+  //     refetchStocks();
+  //     refetchCustomData();
   //     toast({
-  //       title: "Refreshing stocks",
-  //       description: "Fetching latest stock data...",
+  //       title: "Refreshing",
+  //       description: "Fetching latest data...",
   //     });
   //   });
 
   //   return () => {
   //     unlisten.then((fn) => fn());
   //   };
-  // }, [refetch, toast]);
+  // }, [refetchStocks, refetchCustomData, toast]);
 
   // Show error toast if there's an error
   useEffect(() => {
@@ -91,10 +134,11 @@ function AppContent() {
   }, [isError, toast]);
 
   const handleRefresh = () => {
-    refetch();
+    refetchStocks();
+    refetchCustomData();
     toast({
       title: "Refreshing",
-      description: "Fetching latest stock data...",
+      description: "Fetching latest data...",
     });
   };
 
@@ -121,11 +165,19 @@ function AppContent() {
       <Header
         onRefresh={handleRefresh}
         onOpenSettings={() => setManageOpen(true)}
-        isRefreshing={isLoading}
+        isRefreshing={stocksLoading || customDataLoading}
       />
       
-      <div className="flex-1 overflow-y-auto p-4 pb-20">
-        <StockList stocks={stocks} isLoading={isLoading} />
+      <div className="flex-1 overflow-y-auto p-4 pb-20 space-y-6">
+        <StockList stocks={stocks} isLoading={stocksLoading} />
+        {customDataSources.length > 0 && (
+          <>
+            <div className="border-t pt-6">
+              <h2 className="text-lg font-semibold mb-3">Custom Data</h2>
+              <CustomDataList customData={customData} isLoading={customDataLoading} />
+            </div>
+          </>
+        )}
       </div>
       
       <BottomBar lastUpdated={lastUpdated} />

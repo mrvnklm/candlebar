@@ -2,6 +2,10 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { Stock, CustomDataSource, CustomDataValue, DisplayMode } from '@/types';
 
+export type ValueDisplay = 'price' | 'percentage' | 'both';
+export type EntrySpacing = 'compact' | 'normal' | 'relaxed';
+export type SymbolDisplay = 'show' | 'hide' | 'symbol-only' | 'alias-only';
+
 interface StockStore {
   // Stock data
   stockSymbols: string[];
@@ -14,6 +18,12 @@ interface StockStore {
   
   // Settings
   displayMode: DisplayMode;
+  valueDisplay: ValueDisplay; // Global preference for showing price/percentage
+  stockValueDisplays: Record<string, ValueDisplay>; // Individual stock preferences
+  entrySpacing: EntrySpacing; // Spacing between entries
+  symbolDisplay: SymbolDisplay; // How to display symbols/aliases
+  globalDecimals: number; // Global decimal places
+  stockDecimals: Record<string, number>; // Individual stock decimal settings
   refreshInterval: number; // in seconds
   currentIndex: number;
   
@@ -29,6 +39,12 @@ interface StockStore {
   setCustomDataValue: (name: string, value: CustomDataValue) => void;
   
   setDisplayMode: (mode: DisplayMode) => void;
+  setValueDisplay: (display: ValueDisplay) => void;
+  setStockValueDisplay: (symbol: string, display: ValueDisplay | null) => void;
+  setEntrySpacing: (spacing: EntrySpacing) => void;
+  setSymbolDisplay: (display: SymbolDisplay) => void;
+  setGlobalDecimals: (decimals: number) => void;
+  setStockDecimals: (symbol: string, decimals: number | null) => void;
   setRefreshInterval: (interval: number) => void;
   incrementIndex: () => void;
   
@@ -48,6 +64,12 @@ export const useStockStore = create<StockStore>()(
       customDataSources: [],
       customDataValues: {},
       displayMode: 'all',
+      valueDisplay: 'both',
+      stockValueDisplays: {},
+      entrySpacing: 'normal',
+      symbolDisplay: 'show',
+      globalDecimals: 2,
+      stockDecimals: {},
       refreshInterval: 30,
       currentIndex: 0,
       
@@ -75,9 +97,17 @@ export const useStockStore = create<StockStore>()(
           const newAliases = { ...state.symbolAliases };
           delete newAliases[symbol];
           
+          const newStockValueDisplays = { ...state.stockValueDisplays };
+          delete newStockValueDisplays[symbol];
+          
+          const newStockDecimals = { ...state.stockDecimals };
+          delete newStockDecimals[symbol];
+          
           return {
             stockSymbols: state.stockSymbols.filter(s => s !== symbol),
             symbolAliases: newAliases,
+            stockValueDisplays: newStockValueDisplays,
+            stockDecimals: newStockDecimals,
             currentStocks: state.currentStocks.filter(s => s.symbol !== symbol),
           };
         });
@@ -135,13 +165,55 @@ export const useStockStore = create<StockStore>()(
         set({ displayMode: mode });
       },
       
+      setValueDisplay: (display: ValueDisplay) => {
+        set({ valueDisplay: display });
+      },
+      
+      setStockValueDisplay: (symbol: string, display: ValueDisplay | null) => {
+        set((state) => {
+          if (display === null) {
+            const newDisplays = { ...state.stockValueDisplays };
+            delete newDisplays[symbol];
+            return { stockValueDisplays: newDisplays };
+          }
+          return {
+            stockValueDisplays: { ...state.stockValueDisplays, [symbol]: display }
+          };
+        });
+      },
+      
+      setEntrySpacing: (spacing: EntrySpacing) => {
+        set({ entrySpacing: spacing });
+      },
+      
+      setSymbolDisplay: (display: SymbolDisplay) => {
+        set({ symbolDisplay: display });
+      },
+      
+      setGlobalDecimals: (decimals: number) => {
+        set({ globalDecimals: decimals });
+      },
+      
+      setStockDecimals: (symbol: string, decimals: number | null) => {
+        set((state) => {
+          if (decimals === null) {
+            const newDecimals = { ...state.stockDecimals };
+            delete newDecimals[symbol];
+            return { stockDecimals: newDecimals };
+          }
+          return {
+            stockDecimals: { ...state.stockDecimals, [symbol]: decimals }
+          };
+        });
+      },
+      
       setRefreshInterval: (interval: number) => {
         set({ refreshInterval: interval });
       },
       
       incrementIndex: () => {
         set((state) => ({
-          currentIndex: (state.currentIndex + 1) % Math.max(1, state.currentStocks.length),
+          currentIndex: state.currentIndex + 1,
         }));
       },
       
@@ -152,6 +224,12 @@ export const useStockStore = create<StockStore>()(
           symbolAliases: config.aliases || {},
           customDataSources: config.customData || [],
           displayMode: config.displayMode || 'all',
+          valueDisplay: config.valueDisplay || 'both',
+          stockValueDisplays: config.stockValueDisplays || {},
+          entrySpacing: config.entrySpacing || 'normal',
+          symbolDisplay: config.symbolDisplay || 'show',
+          globalDecimals: config.globalDecimals ?? 2,
+          stockDecimals: config.stockDecimals || {},
           refreshInterval: config.refreshInterval || 30,
         });
       },
@@ -163,6 +241,12 @@ export const useStockStore = create<StockStore>()(
           aliases: state.symbolAliases,
           customData: state.customDataSources,
           displayMode: state.displayMode,
+          valueDisplay: state.valueDisplay,
+          stockValueDisplays: state.stockValueDisplays,
+          entrySpacing: state.entrySpacing,
+          symbolDisplay: state.symbolDisplay,
+          globalDecimals: state.globalDecimals,
+          stockDecimals: state.stockDecimals,
           refreshInterval: state.refreshInterval,
         };
       },
@@ -174,6 +258,12 @@ export const useStockStore = create<StockStore>()(
         symbolAliases: state.symbolAliases,
         customDataSources: state.customDataSources,
         displayMode: state.displayMode,
+        valueDisplay: state.valueDisplay,
+        stockValueDisplays: state.stockValueDisplays,
+        entrySpacing: state.entrySpacing,
+        symbolDisplay: state.symbolDisplay,
+        globalDecimals: state.globalDecimals,
+        stockDecimals: state.stockDecimals,
         refreshInterval: state.refreshInterval,
       }),
     }
