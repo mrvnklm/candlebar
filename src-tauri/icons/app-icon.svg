@@ -1,0 +1,89 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Gradient for the candlestick bars -->
+    <linearGradient id="greenGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="redGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ef4444;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#dc2626;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Background gradient -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e293b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0f172a;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Glow effect -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="240" fill="url(#bgGradient)"/>
+  
+  <!-- Grid lines for chart background -->
+  <g opacity="0.1">
+    <line x1="100" y1="150" x2="412" y2="150" stroke="#94a3b8" stroke-width="1"/>
+    <line x1="100" y1="220" x2="412" y2="220" stroke="#94a3b8" stroke-width="1"/>
+    <line x1="100" y1="290" x2="412" y2="290" stroke="#94a3b8" stroke-width="1"/>
+    <line x1="100" y1="360" x2="412" y2="360" stroke="#94a3b8" stroke-width="1"/>
+  </g>
+  
+  <!-- Candlestick chart bars -->
+  <!-- Bar 1 - Green (bullish) -->
+  <g filter="url(#glow)">
+    <rect x="120" y="180" width="40" height="140" fill="url(#greenGradient)" rx="4"/>
+    <rect x="135" y="150" width="10" height="200" fill="url(#greenGradient)"/>
+  </g>
+  
+  <!-- Bar 2 - Red (bearish) -->
+  <g filter="url(#glow)">
+    <rect x="190" y="220" width="40" height="100" fill="url(#redGradient)" rx="4"/>
+    <rect x="205" y="200" width="10" height="140" fill="url(#redGradient)"/>
+  </g>
+  
+  <!-- Bar 3 - Green (bullish) - tallest -->
+  <g filter="url(#glow)">
+    <rect x="260" y="160" width="40" height="160" fill="url(#greenGradient)" rx="4"/>
+    <rect x="275" y="130" width="10" height="220" fill="url(#greenGradient)"/>
+  </g>
+  
+  <!-- Bar 4 - Green (bullish) -->
+  <g filter="url(#glow)">
+    <rect x="330" y="200" width="40" height="120" fill="url(#greenGradient)" rx="4"/>
+    <rect x="345" y="170" width="10" height="180" fill="url(#greenGradient)"/>
+  </g>
+  
+  <!-- Trend line connecting the closes -->
+  <polyline 
+    points="140,250 210,270 280,240 350,260" 
+    stroke="#3b82f6" 
+    stroke-width="3" 
+    fill="none"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    opacity="0.8"
+    filter="url(#glow)"
+  />
+  
+  <!-- Small dots at connection points -->
+  <circle cx="140" cy="250" r="5" fill="#60a5fa"/>
+  <circle cx="210" cy="270" r="5" fill="#60a5fa"/>
+  <circle cx="280" cy="240" r="5" fill="#60a5fa"/>
+  <circle cx="350" cy="260" r="5" fill="#60a5fa"/>
+  
+  <!-- Subtle outer ring -->
+  <circle cx="256" cy="256" r="238" fill="none" stroke="#334155" stroke-width="4" opacity="0.5"/>
+  
+  <!-- Inner accent ring -->
+  <circle cx="256" cy="256" r="220" fill="none" stroke="#475569" stroke-width="2" opacity="0.3"/>
+</svg>

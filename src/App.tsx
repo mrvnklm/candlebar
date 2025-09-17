@@ -3,8 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { listen } from '@tauri-apps/api/event';
 import { Header } from '@/components/layout/Header';
 import { BottomBar } from '@/components/layout/BottomBar';
-import { StockList } from '@/components/stocks/StockList';
-import { CustomDataList } from '@/components/custom/CustomDataList';
+import { DataList } from '@/components/DataList';
 import { ManageModal } from '@/components/modals/ManageModal';
 import { Toaster } from '@/components/ui/toaster';
 import { useToast } from '@/components/ui/use-toast';
@@ -22,7 +21,7 @@ function AppContent() {
   const [manageOpen, setManageOpen] = useState(false);
   const { stocks, isLoading: stocksLoading, isError, refetch: refetchStocks, lastUpdated } = useStocks();
   const { customData, isLoading: customDataLoading, refetch: refetchCustomData } = useCustomData();
-  const { displayMode, currentIndex, incrementIndex, symbolAliases, customDataSources } = useStockStore();
+  const { displayMode, currentIndex, incrementIndex, symbolAliases, customDataSources, stockDecimals } = useStockStore();
   const { toast } = useToast();
 
   // Update tray title
@@ -168,16 +167,35 @@ function AppContent() {
         isRefreshing={stocksLoading || customDataLoading}
       />
       
-      <div className="flex-1 overflow-y-auto p-4 pb-20 space-y-6">
-        <StockList stocks={stocks} isLoading={stocksLoading} />
-        {customDataSources.length > 0 && (
-          <>
-            <div className="border-t pt-6">
-              <h2 className="text-lg font-semibold mb-3">Custom Data</h2>
-              <CustomDataList customData={customData} isLoading={customDataLoading} />
-            </div>
-          </>
-        )}
+      <div className="flex-1 overflow-y-auto p-4 pb-20">
+        <DataList
+          items={[
+            // Map stocks to unified format
+            ...stocks.map(stock => ({
+              id: stock.symbol,
+              type: 'stock' as const,
+              symbol: stock.symbol,
+              alias: symbolAliases[stock.symbol],
+              price: stock.price,
+              changePercent: stock.changePercent || stock.change_percent || 0,
+            })),
+            // Map custom data to unified format
+            ...customData.map(data => {
+              const source = customDataSources.find(s => s.name === data.name);
+              return {
+                id: data.name,
+                type: 'custom' as const,
+                symbol: data.name,
+                alias: source?.alias,
+                value: data.value,
+                decimals: data.decimals,
+                changePercent: data.changePercent,
+                error: data.error,
+              };
+            })
+          ]}
+          isLoading={stocksLoading || customDataLoading}
+        />
       </div>
       
       <BottomBar lastUpdated={lastUpdated} />
