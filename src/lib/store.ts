@@ -15,6 +15,7 @@ interface StockStore {
   // Custom APIs
   customDataSources: CustomDataSource[];
   customDataValues: Record<string, CustomDataValue>;
+  customPrefix: string; // Custom prefix for data sources that use custom prefix
   
   // Settings
   displayMode: DisplayMode;
@@ -26,6 +27,7 @@ interface StockStore {
   stockDecimals: Record<string, number>; // Individual stock decimal settings
   refreshInterval: number; // in seconds
   currentIndex: number;
+  autostart: boolean; // Auto-start at login
   
   // Actions
   addStock: (symbol: string, alias?: string) => void;
@@ -46,7 +48,9 @@ interface StockStore {
   setGlobalDecimals: (decimals: number) => void;
   setStockDecimals: (symbol: string, decimals: number | null) => void;
   setRefreshInterval: (interval: number) => void;
+  setCustomPrefix: (prefix: string) => void;
   incrementIndex: () => void;
+  setAutostart: (enabled: boolean) => void;
   
   importConfig: (config: any) => void;
   exportConfig: () => any;
@@ -63,6 +67,7 @@ export const useStockStore = create<StockStore>()(
       currentStocks: [],
       customDataSources: [],
       customDataValues: {},
+      customPrefix: '',
       displayMode: 'all',
       valueDisplay: 'both',
       stockValueDisplays: {},
@@ -72,6 +77,7 @@ export const useStockStore = create<StockStore>()(
       stockDecimals: {},
       refreshInterval: 30,
       currentIndex: 0,
+      autostart: false,
       
       // Stock actions
       addStock: (symbol: string, alias?: string) => {
@@ -211,10 +217,18 @@ export const useStockStore = create<StockStore>()(
         set({ refreshInterval: interval });
       },
       
+      setCustomPrefix: (prefix: string) => {
+        set({ customPrefix: prefix });
+      },
+      
       incrementIndex: () => {
         set((state) => ({
           currentIndex: state.currentIndex + 1,
         }));
+      },
+      
+      setAutostart: (enabled: boolean) => {
+        set({ autostart: enabled });
       },
       
       // Import/Export
@@ -223,6 +237,7 @@ export const useStockStore = create<StockStore>()(
           stockSymbols: config.symbols || defaultStockSymbols,
           symbolAliases: config.aliases || {},
           customDataSources: config.customData || [],
+          customPrefix: config.customPrefix || '',
           displayMode: config.displayMode || 'all',
           valueDisplay: config.valueDisplay || 'both',
           stockValueDisplays: config.stockValueDisplays || {},
@@ -231,6 +246,7 @@ export const useStockStore = create<StockStore>()(
           globalDecimals: config.globalDecimals ?? 2,
           stockDecimals: config.stockDecimals || {},
           refreshInterval: config.refreshInterval || 30,
+          autostart: config.autostart ?? false,
         });
       },
       
@@ -240,6 +256,7 @@ export const useStockStore = create<StockStore>()(
           symbols: state.stockSymbols,
           aliases: state.symbolAliases,
           customData: state.customDataSources,
+          customPrefix: state.customPrefix,
           displayMode: state.displayMode,
           valueDisplay: state.valueDisplay,
           stockValueDisplays: state.stockValueDisplays,
@@ -248,6 +265,7 @@ export const useStockStore = create<StockStore>()(
           globalDecimals: state.globalDecimals,
           stockDecimals: state.stockDecimals,
           refreshInterval: state.refreshInterval,
+          autostart: state.autostart,
         };
       },
     }),
@@ -257,6 +275,7 @@ export const useStockStore = create<StockStore>()(
         stockSymbols: state.stockSymbols,
         symbolAliases: state.symbolAliases,
         customDataSources: state.customDataSources,
+        customPrefix: state.customPrefix,
         displayMode: state.displayMode,
         valueDisplay: state.valueDisplay,
         stockValueDisplays: state.stockValueDisplays,
@@ -265,6 +284,7 @@ export const useStockStore = create<StockStore>()(
         globalDecimals: state.globalDecimals,
         stockDecimals: state.stockDecimals,
         refreshInterval: state.refreshInterval,
+        autostart: state.autostart,
       }),
     }
   )

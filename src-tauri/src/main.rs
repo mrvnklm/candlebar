@@ -6,6 +6,7 @@ use tauri::{
     tray::{MouseButton, TrayIconBuilder, TrayIconEvent},
     Emitter, Manager, Runtime,
 };
+use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 use yahoo_finance_api as yahoo;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -153,6 +154,26 @@ async fn update_tray_title(app: tauri::AppHandle, title: String) -> Result<(), S
     }
 }
 
+#[tauri::command]
+async fn get_autostart(app: tauri::AppHandle) -> Result<bool, String> {
+    let manager = app.autolaunch();
+    manager.is_enabled()
+        .map_err(|e| format!("Failed to get autostart status: {}", e))
+}
+
+#[tauri::command]
+async fn set_autostart(app: tauri::AppHandle, enable: bool) -> Result<(), String> {
+    let manager = app.autolaunch();
+    
+    if enable {
+        manager.enable()
+            .map_err(|e| format!("Failed to enable autostart: {}", e))
+    } else {
+        manager.disable()
+            .map_err(|e| format!("Failed to disable autostart: {}", e))
+    }
+}
+
 fn position_window_near_tray<R: Runtime>(window: &tauri::WebviewWindow<R>) {
     // Simply center the window on screen
     let _ = window.center();
@@ -217,6 +238,10 @@ fn create_tray<R: Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<()> {
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_autostart::init(
+            MacosLauncher::LaunchAgent,
+            Some(vec![]),
+        ))
         .setup(|app| {
             create_tray(app.handle())?;
             
@@ -234,7 +259,12 @@ fn main() {
             
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![fetch_stocks, update_tray_title])
+        .invoke_handler(tauri::generate_handler![
+            fetch_stocks,
+            update_tray_title,
+            get_autostart,
+            set_autostart
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
